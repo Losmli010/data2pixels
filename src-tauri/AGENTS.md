@@ -9,6 +9,7 @@ Tauri 2 桌面应用的 Rust 后端：模拟 3 通道信号采集引擎 + 进程
 
 - `cargo test` — Rust 单测（acq.rs 的信号生成/clamp/吞吐测试、stats.rs 的序列化测试）
 - `cargo check` — 快速类型检查
+- `cargo clippy` — Lint 检查（`--all-targets -- -D warnings` 严格模式）
 - `cargo fmt` — 格式化（代码库已按 rustfmt 风格书写）
 
 在仓库根执行（启动完整应用，Vite 固定端口 1420）：

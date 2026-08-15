@@ -16,6 +16,7 @@ const MARGIN_L = 48;
 const MARGIN_R = 48;
 const MARGIN_T = 8;
 const MARGIN_B = 20;
+const PAD_Y = 8; // 曲线纵向内缩：峰值/谷值不贴上下边缘，避免刻度与小标签被遮挡
 const H = 200;
 const MAX_POINTS = 3600;
 const WINDOW_MS = 3_600_000;
@@ -25,6 +26,7 @@ const samples = ref<SysSample[]>([]);
 const collapsed = ref(false);
 const wrapRef = ref<HTMLDivElement | null>(null);
 const plotW = ref(560);
+let resizeObserver: ResizeObserver | null = null;
 
 const hasData = computed(() => samples.value.length > 0);
 const plotWarea = computed(() => Math.max(10, plotW.value - MARGIN_L - MARGIN_R));
@@ -53,6 +55,7 @@ const segOpts = (min: number, max: number, value: (s: SysSample) => number | nul
   max,
   tMin: tMin.value,
   tMax: tMax.value,
+  padY: PAD_Y,
   value,
 });
 const memSegs = computed(() =>
@@ -74,7 +77,7 @@ const gpuSegs = computed(() =>
   ),
 );
 
-const tickY = (v: number, max: number) => Math.round(plotH * (1 - v / max));
+const tickY = (v: number, max: number) => Math.round(PAD_Y + (plotH - 2 * PAD_Y) * (1 - v / max));
 const memTickPos = computed(() =>
   axisTicks(0, memMaxMB.value, 5).map((v) => ({ v: Math.round(v), y: tickY(v, memMaxMB.value) })),
 );
@@ -119,7 +122,8 @@ function sizeChart() {
 
 onMounted(async () => {
   sizeChart();
-  window.addEventListener('resize', sizeChart);
+  resizeObserver = new ResizeObserver(sizeChart);
+  resizeObserver.observe(wrapRef.value!);
   unlisten = await listen<{ ts: number; cpu: number; memBytes: number }>('sys-stats', (e) => {
     samples.value = pushSample(samples.value, { ...e.payload, gpu: effectiveGpu() }, MAX_POINTS);
   });
@@ -137,7 +141,8 @@ watch(hasData, (v) => {
 
 onBeforeUnmount(() => {
   unlisten?.();
-  window.removeEventListener('resize', sizeChart);
+  resizeObserver?.disconnect();
+  resizeObserver = null;
 });
 </script>
 
@@ -172,7 +177,7 @@ onBeforeUnmount(() => {
             v-for="t in xTicks"
             :key="t.label"
             :x="t.x"
-            :y="H - 6"
+            :y="plotH + 14"
             class="tick"
             :text-anchor="t.label === '现在' ? 'end' : 'middle'"
           >
