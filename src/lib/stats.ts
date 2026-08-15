@@ -69,7 +69,7 @@ export function axisTicks(min: number, max: number, count: number): number[] {
 }
 
 /// 按 ts 映射 X、值映射 Y 生成 polyline 段；value 返回 null 或槽位本身为 null
-/// （前向填充前的无数据区）处断段。
+/// （前向填充前的无数据区）处断段。padY 留出上下内缩（防止曲线贴边被遮挡）。
 export function toSegments(
   samples: (SysSample | null)[],
   opts: {
@@ -80,11 +80,13 @@ export function toSegments(
     tMin: number;
     tMax: number;
     value: (s: SysSample) => number | null;
+    padY?: number;
   },
 ): string[] {
-  const { width, height, min, max, tMin, tMax, value } = opts;
+  const { width, height, min, max, tMin, tMax, value, padY = 0 } = opts;
   const span = max - min;
   const tSpan = tMax - tMin;
+  const innerH = height - 2 * padY;
   const segs: string[] = [];
   let cur: string[] = [];
   for (const s of samples) {
@@ -104,8 +106,9 @@ export function toSegments(
       tSpan === 0 ? 0 : Math.min(Math.max(((s.ts - tMin) / tSpan) * width, 0), width),
     );
     const clamped = Math.min(Math.max(v, min), max);
-    const y = span === 0 ? height / 2 : height - ((clamped - min) / span) * height;
-    cur.push(`${x},${Math.round(y)}`);
+    const frac = span === 0 ? 0.5 : 1 - (clamped - min) / span;
+    const y = Math.round(padY + innerH * frac);
+    cur.push(`${x},${y}`);
   }
   if (cur.length) segs.push(cur.join(' '));
   return segs;

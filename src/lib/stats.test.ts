@@ -214,4 +214,19 @@ describe('toSegments', () => {
     });
     expect(segs).toEqual(['0,25 0,25']);
   });
+
+  it('padY insets the vertical range so curves do not touch the edges', () => {
+    const segs = toSegments([mk(0, 0), mk(1800, 5), mk(3600, 10)], {
+      width: w,
+      height: h,
+      min: 0,
+      max: 10,
+      tMin: 0,
+      tMax: 3600,
+      padY: 5,
+      value: (s) => s.cpu,
+    });
+    // 0 -> innerH bottom, 5 -> middle, 10 -> innerH top
+    expect(segs).toEqual(['0,45 50,25 100,5']);
+  });
 });
